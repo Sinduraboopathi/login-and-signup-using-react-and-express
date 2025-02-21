@@ -1,39 +1,39 @@
-import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Box, Alert } from '@mui/material';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { Container, Typography, TextField, Button, Box, Alert } from "@mui/material";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 
-interface FormData {
-  email: string;
-  password: string;
-}
+// Validation Schema using Yup
+const schema = yup.object().shape({
+  email: yup.string().email("Invalid email format").required("Email is required"),
+  password: yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
+});
 
 const LoginPage: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-    password: '',
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: yupResolver(schema),
   });
-  const [error, setError] = useState<string>('');
+
+  const [serverError, setServerError] = React.useState<string>("");
   const navigate = useNavigate();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onSubmit = async (data: any) => {
     try {
-      const response = await axios.post('http://localhost:5000/login', formData);
+      const response = await axios.post("http://localhost:5000/login", data);
       if (response.status === 200) {
-        localStorage.setItem('username', response.data.username); // Store username for homepage
-        navigate('/home'); // Redirect to homepage after successful login
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("username", response.data.username);
+        navigate("/home");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid credentials.');
+      setServerError(err.response?.data?.message || "Invalid credentials.");
     }
   };
 
@@ -44,47 +44,37 @@ const LoginPage: React.FC = () => {
           Log In
         </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+        {serverError && <Alert severity="error" sx={{ mb: 2 }}>{serverError}</Alert>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <TextField
             fullWidth
             label="Email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
+            {...register("email")}
+            error={!!errors.email}
+            helperText={errors.email?.message}
             margin="normal"
-            required
           />
           <TextField
             fullWidth
             label="Password"
-            name="password"
             type="password"
-            value={formData.password}
-            onChange={handleChange}
+            {...register("password")}
+            error={!!errors.password}
+            helperText={errors.password?.message}
             margin="normal"
-            required
           />
 
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 3 }}
-          >
-            Log In
+          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3 }} disabled={isSubmitting}>
+            {isSubmitting ? "Logging In..." : "Log In"}
           </Button>
         </form>
+
+            
       </Box>
     </Container>
   );
 };
 
 export default LoginPage;
+

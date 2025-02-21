@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Typography, Box, CircularProgress } from '@mui/material';
+import axios from 'axios';
 
 const HomePage: React.FC = () => {
   const [fact, setFact] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const [profile, setProfile] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFact = async () => {
@@ -18,30 +20,41 @@ const HomePage: React.FC = () => {
       }
     };
 
-    fetchFact();
-  }, []);
+    const fetchProfile = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const response = await axios.get('http://localhost:5000/profile', {
+            headers: { Authorization: token }
+          });
+          setProfile(response.data.message);
+        } catch (err) {
+          console.error('Error fetching profile:', err);
+        }
+      }
+    };
 
-  const username = localStorage.getItem('username');
+    fetchFact();
+    fetchProfile();
+  }, []);
 
   return (
     <Container maxWidth="sm">
       <Box mt={8}>
-        <Typography variant="h4" align="center" gutterBottom>
-          Welcome, {username}!
-        </Typography>
+        <Typography variant="h4" align="center" gutterBottom>Welcome!</Typography>
 
-        <Typography variant="h6" align="center" gutterBottom>
-          Here's a random fact for you:
-        </Typography>
+        {profile && (
+          <Typography variant="h6" align="center" gutterBottom>{profile}</Typography>
+        )}
+
+        <Typography variant="h6" align="center" gutterBottom>Here's a random fact for you:</Typography>
 
         {loading ? (
           <Box display="flex" justifyContent="center">
             <CircularProgress />
           </Box>
         ) : (
-          <Typography variant="body1" align="center">
-            {fact}
-          </Typography>
+          <Typography variant="body1" align="center">{fact}</Typography>
         )}
       </Box>
     </Container>
